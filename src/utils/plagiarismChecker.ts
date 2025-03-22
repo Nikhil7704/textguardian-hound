@@ -1,9 +1,8 @@
-
 import { Source } from "@/components/SourceLink";
 import { PlagiarismMethodType } from "@/components/PlagiarismMethod";
 import type { DatabaseSourceType } from "@/components/PlagiarismMethod";
 
-// TF-IDF implementation for better text similarity matching based on sklearn implementation pattern
+// TF-IDF implementation for better text similarity matching
 const calculateTFIDF = (text1: string, text2: string): number => {
   // Convert texts to lowercase and split into words
   const words1 = text1.toLowerCase().split(/\s+/).filter(word => word.length > 2);
@@ -73,7 +72,7 @@ const calculateTFIDF = (text1: string, text2: string): number => {
   return Math.min(Math.round(similarity * 100), 92); // Cap at 92% as requested
 };
 
-// Enhanced Jaccard similarity implementation with n-grams
+// Enhanced Jaccard similarity implementation
 const calculateJaccardSimilarity = (text1: string, text2: string): number => {
   // Tokenize text into n-grams (3-grams)
   const getNGrams = (text: string, n: number) => {
@@ -109,72 +108,21 @@ const calculateTextSimilarity = (text1: string, text2: string): number => {
   return Math.max(jaccardScore, tfidfScore);
 };
 
-// Interface for API keys
-interface ApiKeys {
-  bingApiKey: string;
-  googleApiKey: string;
-  searchEngineId: string;
-}
-
-// Actual API implementation for Bing Search
-const fetchBingSearchResults = async (query: string, apiKey: string): Promise<Source[]> => {
-  try {
-    // In a real implementation, this would be an actual API call to Bing
-    // For this demo, we simulate the API response
-    console.log(`[Simulated] Making Bing API call with key: ${apiKey.substring(0, 3)}... for query: ${query.substring(0, 30)}...`);
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    return simulateSearchApiResults(query);
-  } catch (error) {
-    console.error("Error fetching Bing search results:", error);
-    return [];
-  }
-};
-
-// Actual API implementation for Google Custom Search
-const fetchGoogleSearchResults = async (query: string, apiKey: string, searchEngineId: string): Promise<Source[]> => {
-  try {
-    // In a real implementation, this would be an actual API call to Google
-    // For this demo, we simulate the API response
-    console.log(`[Simulated] Making Google API call with key: ${apiKey.substring(0, 3)}... and search engine ID: ${searchEngineId} for query: ${query.substring(0, 30)}...`);
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    return simulateSearchApiResults(query);
-  } catch (error) {
-    console.error("Error fetching Google search results:", error);
-    return [];
-  }
-};
-
-// Improved API search with user-provided API keys
-const fetchApiSearchResults = async (query: string, apiKeys: ApiKeys): Promise<Source[]> => {
+// More realistic API search results based on the Bing Search API model
+const fetchApiSearchResults = async (query: string): Promise<Source[]> => {
   // Split the query into smaller chunks for more accurate search
   const chunks = splitTextIntoChunks(query, 200);
   console.log(`Searching with ${chunks.length} query chunks`);
   
-  // Process each chunk with actual API calls
+  // Process each chunk with a simulated Bing API search
   const allResults: Source[] = [];
   
-  for (const chunk of chunks.slice(0, 3)) { // Limit to first 3 chunks for efficiency
-    let chunkResults: Source[] = [];
+  for (const chunk of chunks.slice(0, 3)) { // Limit to first 3 chunks for demo
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
     
-    // Try Bing API first if key is provided
-    if (apiKeys.bingApiKey) {
-      chunkResults = await fetchBingSearchResults(chunk, apiKeys.bingApiKey);
-    } 
-    // Fall back to Google API if Bing failed or key not provided
-    else if (apiKeys.googleApiKey && apiKeys.searchEngineId) {
-      chunkResults = await fetchGoogleSearchResults(chunk, apiKeys.googleApiKey, apiKeys.searchEngineId);
-    }
-    // If no API keys, use simulated results
-    else {
-      chunkResults = simulateSearchApiResults(chunk);
-    }
-    
+    // Get simulated results for this chunk
+    const chunkResults = simulateSearchApiResults(chunk);
     allResults.push(...chunkResults);
   }
   
@@ -499,34 +447,25 @@ const extractTextFromFile = async (file: File): Promise<string> => {
   });
 };
 
-// Updated interface for options
-interface PlagiarismCheckOptions {
-  databaseSourceType?: DatabaseSourceType;
-  uploadedFiles?: File[];
-  studentFiles?: File[];
-  apiKeys?: ApiKeys;
-}
-
 // Main function to check plagiarism with enhanced accuracy
 export const checkPlagiarism = async (
   text: string,
   method: PlagiarismMethodType,
-  options: PlagiarismCheckOptions = {}
+  options: {
+    databaseSourceType?: DatabaseSourceType;
+    uploadedFiles?: File[];
+    studentFiles?: File[];
+  } = {}
 ): Promise<{ sources: Source[]; plagiarismPercentage: number }> => {
   // Simulate a processing delay
   await new Promise(resolve => setTimeout(resolve, 2000));
   
   let sources: Source[] = [];
-  const { 
-    databaseSourceType = 'research', 
-    uploadedFiles = [], 
-    studentFiles = [],
-    apiKeys = { bingApiKey: "", googleApiKey: "", searchEngineId: "" }
-  } = options;
+  const { databaseSourceType = 'research', uploadedFiles = [], studentFiles = [] } = options;
   
   if (method === "searchEngine") {
-    // For search engine method, use the enhanced API search with provided API keys
-    sources = await fetchApiSearchResults(text, apiKeys);
+    // For search engine method, use the enhanced API search simulation
+    sources = await fetchApiSearchResults(text);
     
     // Process uploaded files
     if (uploadedFiles.length > 0) {
@@ -541,7 +480,7 @@ export const checkPlagiarism = async (
       // Search for each file's content separately
       for (const fileText of fileTexts) {
         if (fileText.trim()) {
-          const fileResults = await fetchApiSearchResults(fileText, apiKeys);
+          const fileResults = await fetchApiSearchResults(fileText);
           sources = [...sources, ...fileResults];
         }
       }
