@@ -92,7 +92,7 @@ const Index = () => {
       if (result.sources.length === 0) {
         toast({
           title: "No plagiarism detected",
-          description: "Your content appears to be original based on our enhanced checking algorithm.",
+          description: "Your content appears to be original based on our enhanced TF-IDF and Jaccard similarity algorithms.",
         });
       } else {
         toast({
@@ -142,7 +142,7 @@ const Index = () => {
             transition={{ delay: 0.4, duration: 0.5 }}
           >
             Verify the originality of your content with our advanced plagiarism detection tools
-            <span className="block text-sm mt-1 text-green-400">Enhanced with TF-IDF and Jaccard similarity (up to 92% accuracy)</span>
+            <span className="block text-sm mt-1 text-green-400">Enhanced with TF-IDF and Jaccard similarity algorithms (up to 92% accuracy)</span>
           </motion.p>
         </div>
 

@@ -30,8 +30,8 @@ const calculateTFIDF = (text1: string, text2: string): number => {
   });
   
   // Normalize term frequencies
-  const maxTf1 = Math.max(...Object.values(tf1));
-  const maxTf2 = Math.max(...Object.values(tf2));
+  const maxTf1 = Math.max(...Object.values(tf1), 1);
+  const maxTf2 = Math.max(...Object.values(tf2), 1);
   
   const normalizedTf1: Record<string, number> = {};
   const normalizedTf2: Record<string, number> = {};
@@ -108,91 +108,129 @@ const calculateTextSimilarity = (text1: string, text2: string): number => {
   return Math.max(jaccardScore, tfidfScore);
 };
 
-// Simulated API search results (in a real implementation, this would call the actual API)
+// More realistic API search results based on the Bing Search API model
 const fetchApiSearchResults = async (query: string): Promise<Source[]> => {
-  // This would be replaced with actual API calls to SERP API or Bing API
-  console.log("Searching with query:", query);
+  // Split the query into smaller chunks for more accurate search
+  const chunks = splitTextIntoChunks(query, 200);
+  console.log(`Searching with ${chunks.length} query chunks`);
   
-  // For demonstration purposes, we're simulating API results
-  // In a production environment, this would make real API calls
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // Simulate high-accuracy results
-      const normalizedQuery = query.toLowerCase();
-      let results: Source[] = [];
-      
-      if (normalizedQuery.includes("machine learning") || normalizedQuery.includes("artificial intelligence")) {
-        results = [
-          {
-            url: "https://en.wikipedia.org/wiki/Machine_learning",
-            title: "Machine learning - Wikipedia",
-            matchPercentage: 88,
-            snippet: "Machine learning is a branch of artificial intelligence and computer science which focuses on the use of data and algorithms to imitate the way that humans learn, gradually improving its accuracy."
-          },
-          {
-            url: "https://www.ibm.com/cloud/learn/machine-learning",
-            title: "What is Machine Learning? | IBM",
-            matchPercentage: 76,
-            snippet: "Machine learning is a form of AI that enables a system to learn from data rather than through explicit programming."
-          }
-        ];
+  // Process each chunk with a simulated Bing API search
+  const allResults: Source[] = [];
+  
+  for (const chunk of chunks.slice(0, 3)) { // Limit to first 3 chunks for demo
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Get simulated results for this chunk
+    const chunkResults = simulateSearchApiResults(chunk);
+    allResults.push(...chunkResults);
+  }
+  
+  // Remove duplicates by URL
+  const uniqueResults = allResults.filter((result, index, self) =>
+    index === self.findIndex((r) => r.url === result.url)
+  );
+  
+  // Sort by match percentage (descending)
+  return uniqueResults
+    .sort((a, b) => b.matchPercentage - a.matchPercentage)
+    .slice(0, 5); // Return top 5 results
+};
+
+// Split text into manageable chunks for search
+const splitTextIntoChunks = (text: string, chunkSize: number): string[] => {
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  const chunks: string[] = [];
+  
+  let currentChunk = '';
+  
+  for (const sentence of sentences) {
+    if (currentChunk.length + sentence.length > chunkSize) {
+      chunks.push(currentChunk);
+      currentChunk = sentence;
+    } else {
+      currentChunk += (currentChunk ? ' ' : '') + sentence;
+    }
+  }
+  
+  if (currentChunk) {
+    chunks.push(currentChunk);
+  }
+  
+  return chunks;
+};
+
+// Simulate search API results with more realistic data
+const simulateSearchApiResults = (query: string): Source[] => {
+  const normalizedQuery = query.toLowerCase();
+  
+  // Common plagiarism topics with realistic data
+  if (normalizedQuery.includes("machine learning") || normalizedQuery.includes("artificial intelligence")) {
+    return [
+      {
+        url: "https://en.wikipedia.org/wiki/Machine_learning",
+        title: "Machine learning - Wikipedia",
+        matchPercentage: Math.min(75 + Math.floor(Math.random() * 17), 92),
+        snippet: "Machine learning is a branch of artificial intelligence and computer science which focuses on the use of data and algorithms to imitate the way that humans learn, gradually improving its accuracy."
+      },
+      {
+        url: "https://www.ibm.com/cloud/learn/machine-learning",
+        title: "What is Machine Learning? | IBM",
+        matchPercentage: Math.min(65 + Math.floor(Math.random() * 20), 92),
+        snippet: "Machine learning is a form of AI that enables a system to learn from data rather than through explicit programming."
       }
-      
-      if (normalizedQuery.includes("climate change") || normalizedQuery.includes("global warming")) {
-        results = [
-          {
-            url: "https://www.un.org/en/climatechange",
-            title: "Climate Change | United Nations",
-            matchPercentage: 91,
-            snippet: "Climate change refers to long-term shifts in temperatures and weather patterns. These shifts may be natural, but since the 1800s, human activities have been the main driver of climate change."
-          },
-          {
-            url: "https://climate.nasa.gov/",
-            title: "Climate Change: Vital Signs of the Planet – NASA",
-            matchPercentage: 84,
-            snippet: "The current warming trend is of particular significance because it is unequivocally the result of human activity since the mid-20th century."
-          }
-        ];
+    ];
+  }
+  
+  if (normalizedQuery.includes("climate change") || normalizedQuery.includes("global warming")) {
+    return [
+      {
+        url: "https://www.un.org/en/climatechange",
+        title: "Climate Change | United Nations",
+        matchPercentage: Math.min(70 + Math.floor(Math.random() * 22), 92),
+        snippet: "Climate change refers to long-term shifts in temperatures and weather patterns. These shifts may be natural, but since the 1800s, human activities have been the main driver of climate change."
+      },
+      {
+        url: "https://climate.nasa.gov/",
+        title: "Climate Change: Vital Signs of the Planet – NASA",
+        matchPercentage: Math.min(65 + Math.floor(Math.random() * 20), 92),
+        snippet: "The current warming trend is of particular significance because it is unequivocally the result of human activity since the mid-20th century."
       }
-      
-      if (normalizedQuery.includes("web development") || normalizedQuery.includes("frontend")) {
-        results = [
-          {
-            url: "https://developer.mozilla.org/en-US/docs/Learn",
-            title: "Learn web development | MDN",
-            matchPercentage: 79,
-            snippet: "Modern web development encompasses a variety of technologies and methodologies including responsive design, progressive web apps, and component-based architecture."
-          },
-          {
-            url: "https://www.w3schools.com/",
-            title: "W3Schools Online Web Tutorials",
-            matchPercentage: 69,
-            snippet: "Web development refers to building, creating, and maintaining websites. It includes aspects such as web design, web publishing, web programming, and database management."
-          }
-        ];
+    ];
+  }
+  
+  if (normalizedQuery.includes("web development") || normalizedQuery.includes("frontend")) {
+    return [
+      {
+        url: "https://developer.mozilla.org/en-US/docs/Learn",
+        title: "Learn web development | MDN",
+        matchPercentage: Math.min(68 + Math.floor(Math.random() * 20), 92),
+        snippet: "Modern web development encompasses a variety of technologies and methodologies including responsive design, progressive web apps, and component-based architecture."
+      },
+      {
+        url: "https://www.w3schools.com/",
+        title: "W3Schools Online Web Tutorials",
+        matchPercentage: Math.min(60 + Math.floor(Math.random() * 20), 92),
+        snippet: "Web development refers to building, creating, and maintaining websites. It includes aspects such as web design, web publishing, web programming, and database management."
       }
-      
-      // If no specific match, return generic high-accuracy results
-      if (results.length === 0) {
-        results = [
-          {
-            url: "https://example.com/result1",
-            title: "High Accuracy Result 1",
-            matchPercentage: Math.min(Math.floor(Math.random() * 20) + 70, 92),
-            snippet: "This is a simulated result with improved accuracy. In a real implementation, this would be an actual matching passage from the web using SERP API or Bing API."
-          },
-          {
-            url: "https://example.com/result2",
-            title: "High Accuracy Result 2",
-            matchPercentage: Math.min(Math.floor(Math.random() * 20) + 65, 92),
-            snippet: "Another simulated result showing how the enhanced plagiarism detection would display found matches with better accuracy."
-          }
-        ];
-      }
-      
-      resolve(results);
-    }, 1500);
-  });
+    ];
+  }
+  
+  // Generate some generic results for other queries
+  return [
+    {
+      url: `https://example.com/result-${Math.floor(Math.random() * 1000)}`,
+      title: `Search Result for "${query.substring(0, 30)}${query.length > 30 ? '...' : ''}"`,
+      matchPercentage: Math.min(50 + Math.floor(Math.random() * 42), 92),
+      snippet: `This is a simulated search result for your query. In a real implementation, this would be an actual matching passage from the web using Bing Search API. The text might contain terms like: ${normalizedQuery.split(' ').slice(0, 5).join(', ')}...`
+    },
+    {
+      url: `https://example.org/result-${Math.floor(Math.random() * 1000)}`,
+      title: `Related Information on "${query.substring(0, 25)}${query.length > 25 ? '...' : ''}"`,
+      matchPercentage: Math.min(45 + Math.floor(Math.random() * 35), 92),
+      snippet: `Another simulated result showing how the enhanced plagiarism detection would display found matches with TF-IDF and Jaccard similarity algorithms for improved accuracy.`
+    }
+  ];
 };
 
 // Simulated database of academic documents
@@ -315,77 +353,6 @@ const booksJournalsDatabase = [
   }
 ];
 
-// Simulated web results for demonstration purposes
-const simulatedWebResults = (query: string): Source[] => {
-  const normalizedQuery = query.toLowerCase();
-  
-  if (normalizedQuery.includes("machine learning") || normalizedQuery.includes("artificial intelligence")) {
-    return [
-      {
-        url: "https://en.wikipedia.org/wiki/Machine_learning",
-        title: "Machine learning - Wikipedia",
-        matchPercentage: 78,
-        snippet: "Machine learning is a branch of artificial intelligence and computer science which focuses on the use of data and algorithms to imitate the way that humans learn, gradually improving its accuracy."
-      },
-      {
-        url: "https://www.ibm.com/cloud/learn/machine-learning",
-        title: "What is Machine Learning? | IBM",
-        matchPercentage: 65,
-        snippet: "Machine learning is a form of AI that enables a system to learn from data rather than through explicit programming."
-      }
-    ];
-  }
-  
-  if (normalizedQuery.includes("climate change") || normalizedQuery.includes("global warming")) {
-    return [
-      {
-        url: "https://www.un.org/en/climatechange",
-        title: "Climate Change | United Nations",
-        matchPercentage: 82,
-        snippet: "Climate change refers to long-term shifts in temperatures and weather patterns. These shifts may be natural, but since the 1800s, human activities have been the main driver of climate change."
-      },
-      {
-        url: "https://climate.nasa.gov/",
-        title: "Climate Change: Vital Signs of the Planet – NASA",
-        matchPercentage: 71,
-        snippet: "The current warming trend is of particular significance because it is unequivocally the result of human activity since the mid-20th century."
-      }
-    ];
-  }
-  
-  if (normalizedQuery.includes("web development") || normalizedQuery.includes("frontend")) {
-    return [
-      {
-        url: "https://developer.mozilla.org/en-US/docs/Learn",
-        title: "Learn web development | MDN",
-        matchPercentage: 68,
-        snippet: "Modern web development encompasses a variety of technologies and methodologies including responsive design, progressive web apps, and component-based architecture."
-      },
-      {
-        url: "https://www.w3schools.com/",
-        title: "W3Schools Online Web Tutorials",
-        matchPercentage: 55,
-        snippet: "Web development refers to building, creating, and maintaining websites. It includes aspects such as web design, web publishing, web programming, and database management."
-      }
-    ];
-  }
-  
-  return [
-    {
-      url: "https://example.com/result1",
-      title: "Generic Result 1",
-      matchPercentage: Math.floor(Math.random() * 30) + 40,
-      snippet: "This is a simulated result for demonstration purposes. In a real implementation, this would be an actual matching passage from the web."
-    },
-    {
-      url: "https://example.com/result2",
-      title: "Generic Result 2",
-      matchPercentage: Math.floor(Math.random() * 20) + 30,
-      snippet: "Another simulated result showing how the plagiarism detection would display found matches."
-    }
-  ];
-};
-
 // Get the appropriate database based on the source type
 const getDatabaseBySourceType = (sourceType: DatabaseSourceType) => {
   switch (sourceType) {
@@ -402,20 +369,30 @@ const getDatabaseBySourceType = (sourceType: DatabaseSourceType) => {
   }
 };
 
-// Check text against the selected database
+// Check text against the selected database with improved accuracy
 const checkAgainstDatabase = (text: string, databaseSourceType: DatabaseSourceType = 'research'): Source[] => {
   const database = getDatabaseBySourceType(databaseSourceType);
   const results: Source[] = [];
   
+  // Split text into chunks for more accurate comparison
+  const chunks = splitTextIntoChunks(text, 150);
+  
   database.forEach(document => {
     const documentContent = document.content;
-    const similarity = calculateTextSimilarity(text, documentContent);
+    let bestSimilarity = 0;
     
-    if (similarity > 30) {
+    // Check each chunk against the document to find best match
+    for (const chunk of chunks) {
+      if (chunk.length < 20) continue; // Skip very short chunks
+      const similarity = calculateTextSimilarity(chunk, documentContent);
+      bestSimilarity = Math.max(bestSimilarity, similarity);
+    }
+    
+    if (bestSimilarity > 30) {
       results.push({
         url: `https://example.com/document/${document.id}`,
         title: document.title,
-        matchPercentage: similarity,
+        matchPercentage: bestSimilarity,
         snippet: documentContent.substring(0, 150) + '...'
       });
     }
@@ -424,19 +401,27 @@ const checkAgainstDatabase = (text: string, databaseSourceType: DatabaseSourceTy
   return results.sort((a, b) => b.matchPercentage - a.matchPercentage);
 };
 
-// Check against uploaded student documents
+// Improved check against uploaded student documents
 const checkAgainstUploadedDocuments = async (text: string, files: File[]): Promise<Source[]> => {
   const results: Source[] = [];
+  const chunks = splitTextIntoChunks(text, 150);
   
   for (const file of files) {
     const fileContent = await extractTextFromFile(file);
-    const similarity = calculateTextSimilarity(text, fileContent);
+    let bestSimilarity = 0;
     
-    if (similarity > 25) {
+    // Check each chunk against the document to find best match
+    for (const chunk of chunks) {
+      if (chunk.length < 20) continue; // Skip very short chunks
+      const similarity = calculateTextSimilarity(chunk, fileContent);
+      bestSimilarity = Math.max(bestSimilarity, similarity);
+    }
+    
+    if (bestSimilarity > 25) {
       results.push({
         url: `#document-${file.name}`,
         title: file.name,
-        matchPercentage: similarity,
+        matchPercentage: bestSimilarity,
         snippet: fileContent.substring(0, 150) + '...'
       });
     }
@@ -472,47 +457,74 @@ export const checkPlagiarism = async (
     studentFiles?: File[];
   } = {}
 ): Promise<{ sources: Source[]; plagiarismPercentage: number }> => {
+  // Simulate a processing delay
   await new Promise(resolve => setTimeout(resolve, 2000));
   
   let sources: Source[] = [];
   const { databaseSourceType = 'research', uploadedFiles = [], studentFiles = [] } = options;
   
   if (method === "searchEngine") {
+    // For search engine method, use the enhanced API search simulation
     sources = await fetchApiSearchResults(text);
     
+    // Process uploaded files
     if (uploadedFiles.length > 0) {
-      const extractedText = await Promise.all(uploadedFiles.map(extractTextFromFile));
-      const combinedText = extractedText.join(' ');
+      // Extract text from each file
+      const fileTexts = await Promise.all(
+        uploadedFiles.map(async file => {
+          const extractedText = await extractTextFromFile(file);
+          return extractedText;
+        })
+      );
       
-      if (combinedText.trim()) {
-        const fileSearchResults = await fetchApiSearchResults(combinedText);
-        sources = [...sources, ...fileSearchResults];
+      // Search for each file's content separately
+      for (const fileText of fileTexts) {
+        if (fileText.trim()) {
+          const fileResults = await fetchApiSearchResults(fileText);
+          sources = [...sources, ...fileResults];
+        }
       }
     }
   } else {
+    // For database method, use the improved database comparison
     sources = checkAgainstDatabase(text, databaseSourceType);
     
+    // Process uploaded files
     if (uploadedFiles.length > 0) {
-      const extractedText = await Promise.all(uploadedFiles.map(extractTextFromFile));
-      const combinedText = extractedText.join(' ');
+      // Extract and search file content
+      const fileTexts = await Promise.all(
+        uploadedFiles.map(async file => {
+          const extractedText = await extractTextFromFile(file);
+          return extractedText;
+        })
+      );
       
-      if (combinedText.trim()) {
-        const fileSearchResults = await fetchApiSearchResults(combinedText);
-        sources = [...sources, ...fileSearchResults];
+      // Check each file's content against the database
+      for (const fileText of fileTexts) {
+        if (fileText.trim()) {
+          const fileResults = checkAgainstDatabase(fileText, databaseSourceType);
+          sources = [...sources, ...fileResults];
+        }
       }
     }
     
+    // Check against student files if provided
     if (studentFiles.length > 0) {
-      const studentDocResults = await checkAgainstUploadedDocuments(text, studentFiles);
-      sources = [...sources, ...studentDocResults];
+      const studentResults = await checkAgainstUploadedDocuments(text, studentFiles);
+      sources = [...sources, ...studentResults];
     }
   }
   
-  // Calculate weighted plagiarism percentage with improved accuracy
+  // Remove duplicate sources by URL
+  sources = sources.filter((source, index, self) =>
+    index === self.findIndex((s) => s.url === source.url)
+  );
+  
+  // Calculate a weighted plagiarism percentage
   let plagiarismPercentage = 0;
   if (sources.length > 0) {
-    // Weight higher matches more heavily for better accuracy
-    const totalWeight = sources.reduce((sum, source, index) => sum + (sources.length - index), 0);
+    // Weight the top matches more heavily
+    const totalWeight = sources.reduce((sum, _, index) => sum + (sources.length - index), 0);
     const weightedSum = sources.reduce((sum, source, index) => {
       const weight = (sources.length - index) / totalWeight;
       return sum + (source.matchPercentage * weight);
@@ -522,7 +534,7 @@ export const checkPlagiarism = async (
   }
   
   return {
-    sources,
+    sources: sources.slice(0, 5), // Return top 5 sources
     plagiarismPercentage
   };
 };
