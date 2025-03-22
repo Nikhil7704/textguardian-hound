@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import TextInput from "@/components/TextInput";
-import PlagiarismMethod, { PlagiarismMethodType } from "@/components/PlagiarismMethod";
+import PlagiarismMethod, { PlagiarismMethodType, DatabaseSourceType } from "@/components/PlagiarismMethod";
 import ResultsDisplay from "@/components/ResultsDisplay";
 import { Source } from "@/components/SourceLink";
 import { checkPlagiarism } from "@/utils/plagiarismChecker";
@@ -10,6 +10,8 @@ import { useToast } from "@/components/ui/use-toast";
 
 const Index = () => {
   const [selectedMethod, setSelectedMethod] = useState<PlagiarismMethodType>("searchEngine");
+  const [selectedDatabaseSource, setSelectedDatabaseSource] = useState<DatabaseSourceType>("research");
+  const [studentFiles, setStudentFiles] = useState<File[]>([]);
   const [isChecking, setIsChecking] = useState(false);
   const [sources, setSources] = useState<Source[]>([]);
   const [plagiarismPercentage, setPlagiarismPercentage] = useState(0);
@@ -27,8 +29,34 @@ const Index = () => {
     }
   };
 
-  const handleTextSubmit = async (text: string) => {
-    if (text.length < 20) {
+  const handleDatabaseSourceSelect = (source: DatabaseSourceType) => {
+    setSelectedDatabaseSource(source);
+    
+    // Reset results when changing source
+    if (showResults) {
+      setShowResults(false);
+      setSources([]);
+      setPlagiarismPercentage(0);
+    }
+  };
+
+  const handleStudentFileUpload = (files: File[]) => {
+    setStudentFiles(files);
+  };
+
+  const handleTextSubmit = async (text: string, uploadedFiles: File[] = []) => {
+    const hasContent = text.trim().length > 0 || uploadedFiles.length > 0;
+    
+    if (!hasContent) {
+      toast({
+        title: "No content to check",
+        description: "Please enter text or upload a document to check for plagiarism.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (text.length < 20 && uploadedFiles.length === 0) {
       toast({
         title: "Text too short",
         description: "Please enter at least 20 characters for accurate plagiarism detection.",
@@ -41,7 +69,22 @@ const Index = () => {
     setShowResults(false);
 
     try {
-      const result = await checkPlagiarism(text, selectedMethod);
+      // Process uploaded files first if there are any
+      let contentToCheck = text;
+      
+      if (uploadedFiles.length > 0) {
+        toast({
+          title: "Processing documents",
+          description: `Extracting text from ${uploadedFiles.length} ${uploadedFiles.length === 1 ? 'document' : 'documents'}...`,
+        });
+      }
+
+      const result = await checkPlagiarism(contentToCheck, selectedMethod, {
+        databaseSourceType: selectedDatabaseSource,
+        uploadedFiles: uploadedFiles,
+        studentFiles: studentFiles,
+      });
+      
       setSources(result.sources);
       setPlagiarismPercentage(result.plagiarismPercentage);
       setShowResults(true);
@@ -49,7 +92,7 @@ const Index = () => {
       if (result.sources.length === 0) {
         toast({
           title: "No plagiarism detected",
-          description: "Your text appears to be original content.",
+          description: "Your content appears to be original.",
         });
       } else {
         toast({
@@ -105,6 +148,9 @@ const Index = () => {
         <PlagiarismMethod
           selectedMethod={selectedMethod}
           onSelectMethod={handleMethodSelect}
+          selectedDatabaseSource={selectedDatabaseSource}
+          onSelectDatabaseSource={handleDatabaseSourceSelect}
+          onFileUpload={handleStudentFileUpload}
         />
 
         <TextInput
