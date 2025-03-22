@@ -7,6 +7,7 @@ import ResultsDisplay from "@/components/ResultsDisplay";
 import { Source } from "@/components/SourceLink";
 import { checkPlagiarism } from "@/utils/plagiarismChecker";
 import { useToast } from "@/components/ui/use-toast";
+import ApiKeyConfig from "@/components/ApiKeyConfig";
 
 const Index = () => {
   const [selectedMethod, setSelectedMethod] = useState<PlagiarismMethodType>("searchEngine");
@@ -16,6 +17,15 @@ const Index = () => {
   const [sources, setSources] = useState<Source[]>([]);
   const [plagiarismPercentage, setPlagiarismPercentage] = useState(0);
   const [showResults, setShowResults] = useState(false);
+  const [apiKeys, setApiKeys] = useState<{
+    bingApiKey: string;
+    googleApiKey: string;
+    searchEngineId: string;
+  }>({
+    bingApiKey: "",
+    googleApiKey: "",
+    searchEngineId: ""
+  });
   const { toast } = useToast();
 
   const handleMethodSelect = (method: PlagiarismMethodType) => {
@@ -44,6 +54,18 @@ const Index = () => {
     setStudentFiles(files);
   };
 
+  const handleApiKeysChange = (keys: { bingApiKey: string; googleApiKey: string; searchEngineId: string }) => {
+    setApiKeys(keys);
+    
+    // Save keys to localStorage for persistence
+    localStorage.setItem('plagiarism_checker_api_keys', JSON.stringify(keys));
+    
+    toast({
+      title: "API Keys Updated",
+      description: "Your API keys have been saved and will be used for plagiarism checking.",
+    });
+  };
+
   const handleTextSubmit = async (text: string, uploadedFiles: File[] = []) => {
     const hasContent = text.trim().length > 0 || uploadedFiles.length > 0;
     
@@ -65,6 +87,20 @@ const Index = () => {
       return;
     }
 
+    // Check for API keys when using search engine method
+    if (selectedMethod === "searchEngine") {
+      const hasValidApiKey = apiKeys.bingApiKey || (apiKeys.googleApiKey && apiKeys.searchEngineId);
+      
+      if (!hasValidApiKey) {
+        toast({
+          title: "API Key Required",
+          description: "Please provide a Bing API key or Google API key with search engine ID for search engine-based plagiarism checking.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setIsChecking(true);
     setShowResults(false);
 
@@ -83,6 +119,7 @@ const Index = () => {
         databaseSourceType: selectedDatabaseSource,
         uploadedFiles: uploadedFiles,
         studentFiles: studentFiles,
+        apiKeys: apiKeys,
       });
       
       setSources(result.sources);
@@ -145,6 +182,10 @@ const Index = () => {
             <span className="block text-sm mt-1 text-green-400">Enhanced with TF-IDF and Jaccard similarity algorithms (up to 92% accuracy)</span>
           </motion.p>
         </div>
+
+        {selectedMethod === "searchEngine" && (
+          <ApiKeyConfig onApiKeysChange={handleApiKeysChange} />
+        )}
 
         <PlagiarismMethod
           selectedMethod={selectedMethod}
