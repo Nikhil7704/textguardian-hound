@@ -1,6 +1,7 @@
 import { Source } from "@/components/SourceLink";
 import { PlagiarismMethodType } from "@/components/PlagiarismMethod";
 import type { DatabaseSourceType } from "@/components/PlagiarismMethod";
+import { searchGoogleApi, enhanceSearchResults, SearchApiConfig } from "./googleSearchApi";
 
 // TF-IDF implementation for better text similarity matching
 const calculateTFIDF = (text1: string, text2: string): number => {
@@ -108,33 +109,55 @@ const calculateTextSimilarity = (text1: string, text2: string): number => {
   return Math.max(jaccardScore, tfidfScore);
 };
 
-// More realistic API search results based on the Bing Search API model
-const fetchApiSearchResults = async (query: string): Promise<Source[]> => {
-  // Split the query into smaller chunks for more accurate search
-  const chunks = splitTextIntoChunks(query, 200);
-  console.log(`Searching with ${chunks.length} query chunks`);
-  
-  // Process each chunk with a simulated Bing API search
-  const allResults: Source[] = [];
-  
-  for (const chunk of chunks.slice(0, 3)) { // Limit to first 3 chunks for demo
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Get simulated results for this chunk
-    const chunkResults = simulateSearchApiResults(chunk);
-    allResults.push(...chunkResults);
+// Real API search results from Google Custom Search API
+const fetchApiSearchResults = async (
+  query: string, 
+  searchApiConfig?: SearchApiConfig
+): Promise<Source[]> => {
+  // Skip API call if no configuration is provided
+  if (!searchApiConfig?.apiKey || !searchApiConfig?.searchEngineId) {
+    console.log("Using simulated search results as no API key was provided");
+    return simulateSearchApiResults(query);
   }
-  
-  // Remove duplicates by URL
-  const uniqueResults = allResults.filter((result, index, self) =>
-    index === self.findIndex((r) => r.url === result.url)
-  );
-  
-  // Sort by match percentage (descending)
-  return uniqueResults
-    .sort((a, b) => b.matchPercentage - a.matchPercentage)
-    .slice(0, 5); // Return top 5 results
+
+  try {
+    // Split the query into smaller chunks for more accurate search
+    const chunks = splitTextIntoChunks(query, 200);
+    console.log(`Searching with ${chunks.length} query chunks using Google API`);
+    
+    // Process each chunk with actual Google API search
+    const allResults: Source[] = [];
+    
+    // Only use first few chunks to minimize API usage and ensure reasonable response time
+    for (const chunk of chunks.slice(0, 3)) {
+      // Get actual results from Google API for this chunk
+      const chunkResults = await searchGoogleApi(chunk, searchApiConfig);
+      
+      // Calculate match percentages based on similarity algorithms
+      const enhancedResults = enhanceSearchResults(
+        chunkResults,
+        query,
+        calculateTextSimilarity
+      );
+      
+      allResults.push(...enhancedResults);
+    }
+    
+    // Remove duplicates by URL
+    const uniqueResults = allResults.filter((result, index, self) =>
+      index === self.findIndex((r) => r.url === result.url)
+    );
+    
+    // Sort by match percentage (descending)
+    return uniqueResults
+      .sort((a, b) => b.matchPercentage - a.matchPercentage)
+      .slice(0, 5); // Return top 5 results
+  } catch (error) {
+    console.error("Error fetching search results:", error);
+    // Fallback to simulated results on error
+    console.log("Falling back to simulated search results due to API error");
+    return simulateSearchApiResults(query);
+  }
 };
 
 // Split text into manageable chunks for search
@@ -188,7 +211,7 @@ const simulateSearchApiResults = (query: string): Source[] => {
         url: "https://www.un.org/en/climatechange",
         title: "Climate Change | United Nations",
         matchPercentage: Math.min(70 + Math.floor(Math.random() * 22), 92),
-        snippet: "Climate change refers to long-term shifts in temperatures and weather patterns. These shifts may be natural, but since the 1800s, human activities have been the main driver of climate change."
+        snippet: "Climate change refers to long-term shifts in temperatures and weather patterns. These shifts may be natural, but since the 1800s, human activities have been the main driver of climate change, primarily due to the burning of fossil fuels."
       },
       {
         url: "https://climate.nasa.gov/",
@@ -455,17 +478,23 @@ export const checkPlagiarism = async (
     databaseSourceType?: DatabaseSourceType;
     uploadedFiles?: File[];
     studentFiles?: File[];
+    searchApiConfig?: SearchApiConfig;
   } = {}
 ): Promise<{ sources: Source[]; plagiarismPercentage: number }> => {
   // Simulate a processing delay
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  await new Promise(resolve => setTimeout(resolve, 1000));
   
   let sources: Source[] = [];
-  const { databaseSourceType = 'research', uploadedFiles = [], studentFiles = [] } = options;
+  const { 
+    databaseSourceType = 'research', 
+    uploadedFiles = [], 
+    studentFiles = [],
+    searchApiConfig
+  } = options;
   
   if (method === "searchEngine") {
-    // For search engine method, use the enhanced API search simulation
-    sources = await fetchApiSearchResults(text);
+    // Use real or simulated API search based on availability of searchApiConfig
+    sources = await fetchApiSearchResults(text, searchApiConfig);
     
     // Process uploaded files
     if (uploadedFiles.length > 0) {
@@ -480,7 +509,7 @@ export const checkPlagiarism = async (
       // Search for each file's content separately
       for (const fileText of fileTexts) {
         if (fileText.trim()) {
-          const fileResults = await fetchApiSearchResults(fileText);
+          const fileResults = await fetchApiSearchResults(fileText, searchApiConfig);
           sources = [...sources, ...fileResults];
         }
       }

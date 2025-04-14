@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import TextInput from "@/components/TextInput";
 import PlagiarismMethod, { PlagiarismMethodType, DatabaseSourceType } from "@/components/PlagiarismMethod";
@@ -7,6 +7,8 @@ import ResultsDisplay from "@/components/ResultsDisplay";
 import { Source } from "@/components/SourceLink";
 import { checkPlagiarism } from "@/utils/plagiarismChecker";
 import { useToast } from "@/components/ui/use-toast";
+import ApiKeyConfig from "@/components/ApiKeyConfig";
+import { SearchApiConfig } from "@/utils/googleSearchApi";
 
 const Index = () => {
   const [selectedMethod, setSelectedMethod] = useState<PlagiarismMethodType>("searchEngine");
@@ -16,7 +18,18 @@ const Index = () => {
   const [sources, setSources] = useState<Source[]>([]);
   const [plagiarismPercentage, setPlagiarismPercentage] = useState(0);
   const [showResults, setShowResults] = useState(false);
+  const [searchApiConfig, setSearchApiConfig] = useState<SearchApiConfig>(() => {
+    // Try to load from localStorage if available
+    const savedConfig = localStorage.getItem("plagiarismCheckerApiConfig");
+    return savedConfig ? JSON.parse(savedConfig) : { apiKey: "", searchEngineId: "" };
+  });
+  
   const { toast } = useToast();
+
+  // Save API config to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem("plagiarismCheckerApiConfig", JSON.stringify(searchApiConfig));
+  }, [searchApiConfig]);
 
   const handleMethodSelect = (method: PlagiarismMethodType) => {
     setSelectedMethod(method);
@@ -65,6 +78,16 @@ const Index = () => {
       return;
     }
 
+    // Check if API key is configured when using search engine method
+    if (selectedMethod === "searchEngine" && 
+        (!searchApiConfig.apiKey || !searchApiConfig.searchEngineId)) {
+      toast({
+        title: "API Not Configured",
+        description: "Please configure your Google API key and Search Engine ID for real-time plagiarism detection.",
+        variant: "destructive",
+      });
+    }
+
     setIsChecking(true);
     setShowResults(false);
 
@@ -83,6 +106,7 @@ const Index = () => {
         databaseSourceType: selectedDatabaseSource,
         uploadedFiles: uploadedFiles,
         studentFiles: studentFiles,
+        searchApiConfig: searchApiConfig,
       });
       
       setSources(result.sources);
@@ -110,6 +134,17 @@ const Index = () => {
       });
     } finally {
       setIsChecking(false);
+    }
+  };
+
+  const handleApiConfigChange = (config: SearchApiConfig) => {
+    setSearchApiConfig(config);
+    
+    if (config.apiKey && config.searchEngineId) {
+      toast({
+        title: "API configured successfully",
+        description: "Your Google API key and Search Engine ID have been saved.",
+      });
     }
   };
 
@@ -144,6 +179,20 @@ const Index = () => {
             Verify the originality of your content with our advanced plagiarism detection tools
             <span className="block text-sm mt-1 text-green-400">Enhanced with TF-IDF and Jaccard similarity algorithms (up to 92% accuracy)</span>
           </motion.p>
+          
+          {selectedMethod === "searchEngine" && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6, duration: 0.5 }}
+              className="mt-4 flex justify-center"
+            >
+              <ApiKeyConfig 
+                onConfigChange={handleApiConfigChange} 
+                config={searchApiConfig} 
+              />
+            </motion.div>
+          )}
         </div>
 
         <PlagiarismMethod
