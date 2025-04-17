@@ -61,14 +61,14 @@ export const checkPlagiarism = async (
     index === self.findIndex((s) => s.url === source.url)
   );
   
-  // Enhanced plagiarism percentage calculation
+  // Dramatically enhanced plagiarism percentage calculation
   let plagiarismPercentage = 0;
   
   if (sources.length > 0) {
-    // Improved algorithm for more accurate plagiarism detection:
-    // 1. Base percentage on number of sources and their match percentages
-    // 2. Weigh higher matches more significantly
-    // 3. Scale up based on source count (more sources = higher plagiarism likelihood)
+    // Completely revised algorithm for more accurate and stronger plagiarism detection:
+    // 1. Much higher weighting for top matches
+    // 2. Aggressive scaling based on source count
+    // 3. Higher baseline for any matches at all
     
     // Sort sources by match percentage (highest first)
     sources.sort((a, b) => b.matchPercentage - a.matchPercentage);
@@ -76,13 +76,13 @@ export const checkPlagiarism = async (
     // Get top 3 sources (or fewer if less available)
     const topSources = sources.slice(0, 3);
     
-    // Calculate weighted average with diminishing weights (first source has highest weight)
-    const weights = [0.6, 0.25, 0.15]; // Weights for 1st, 2nd, and 3rd sources
+    // Calculate weighted average with stronger weights for top sources
+    const weights = [0.7, 0.3, 0.2]; // Increased weights for 1st, 2nd, and 3rd sources
     let weightSum = 0;
     let weightedScore = 0;
     
     topSources.forEach((source, index) => {
-      const weight = weights[index] || 0.1; // Use 0.1 weight for any sources beyond top 3
+      const weight = weights[index] || 0.15; // Use higher weight for any sources beyond top 3
       weightedScore += source.matchPercentage * weight;
       weightSum += weight;
     });
@@ -90,23 +90,26 @@ export const checkPlagiarism = async (
     // Normalize based on actual weights used
     let baseScore = weightSum > 0 ? weightedScore / weightSum : 0;
     
-    // Apply source count multiplier (more sources = higher plagiarism)
-    // Scale up the score based on number of sources, but with diminishing returns
-    const sourceCountMultiplier = Math.min(1 + (sources.length / 10), 1.5);
+    // Apply much stronger source count multiplier (more sources = higher plagiarism)
+    // Dramatic scaling based on number of sources found
+    const sourceCountMultiplier = Math.min(1.25 + (sources.length / 5), 1.8);
     
-    // Calculate final percentage with scaling
+    // Calculate final percentage with enhanced scaling
     plagiarismPercentage = Math.min(
       Math.round(baseScore * sourceCountMultiplier),
       95 // Cap at 95% as requested
     );
     
-    // Ensure minimum plagiarism score if multiple sources are found
-    if (sources.length >= 3 && plagiarismPercentage < 50) {
-      plagiarismPercentage = Math.max(plagiarismPercentage, 50);
-    } else if (sources.length >= 2 && plagiarismPercentage < 40) {
-      plagiarismPercentage = Math.max(plagiarismPercentage, 40);
-    } else if (sources.length >= 1 && plagiarismPercentage < 30) {
-      plagiarismPercentage = Math.max(plagiarismPercentage, 30);
+    // Set much higher minimum thresholds based on number of sources
+    if (sources.length >= 3) {
+      plagiarismPercentage = Math.max(plagiarismPercentage, 70); // High minimum for 3+ sources
+    } else if (sources.length >= 2) {
+      plagiarismPercentage = Math.max(plagiarismPercentage, 55); // Medium-high minimum for 2 sources
+    } else if (sources.length >= 1) {
+      // For a single source, base minimum on its match percentage
+      const sourceMatchPercentage = sources[0].matchPercentage;
+      const minimumScore = Math.max(sourceMatchPercentage, 40); // At least 40% for any single source
+      plagiarismPercentage = Math.max(plagiarismPercentage, minimumScore);
     }
   }
   

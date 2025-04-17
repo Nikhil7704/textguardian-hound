@@ -68,7 +68,7 @@ export const calculateTFIDF = (text1: string, text2: string): number => {
   
   // Enhanced scaling to better reflect plagiarism severity
   const similarity = dotProduct / (magnitude1 * magnitude2);
-  const scaledSimilarity = Math.pow(similarity, 0.7) * 100;
+  // Reduced power factor and increased multiplier for higher scores
+  const scaledSimilarity = Math.pow(similarity, 0.5) * 120;
   
-  return Math.min(Math.round(scaledSimilarity), 95); // Increased cap to 95%
-};
+  return Math.min(Math.round(scaledSimilarity), 95); // Kept cap at 95% but significantly boosted base score

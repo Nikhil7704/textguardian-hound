@@ -24,11 +24,11 @@ export const calculateJaccardSimilarity = (text1: string, text2: string): number
   if (union.size === 0) return 0;
   
   // Calculate similarity and scale it for more appropriate detection
-  // Increase the multiplier to make matches more significant
+  // Significantly boost the similarity score for better plagiarism detection
   const similarity = intersection.size / union.size;
   
-  // Enhanced scaling to better reflect plagiarism severity
-  const scaledSimilarity = Math.pow(similarity, 0.7) * 100;
+  // Strongly enhanced scaling to better reflect plagiarism severity
+  // Reduced power factor to increase scores dramatically
+  const scaledSimilarity = Math.pow(similarity, 0.5) * 100;
   
-  return Math.min(Math.round(scaledSimilarity), 95); // Increased cap to 95%
-};
+  return Math.min(Math.round(scaledSimilarity * 1.25), 95); // Increased multiplier and kept cap at 95%
