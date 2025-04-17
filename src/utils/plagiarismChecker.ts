@@ -5,6 +5,7 @@ import { SearchApiConfig } from "./googleSearchApi";
 import { fetchApiSearchResults } from "./search/searchHandler";
 import { checkAgainstDatabase } from "./database/databaseHandler";
 import { checkAgainstUploadedDocuments } from "./fileProcessing/fileHandler";
+import { processUploadedFiles } from "./textProcessing";
 
 // Main function to check plagiarism with enhanced accuracy
 export const checkPlagiarism = async (
@@ -28,30 +29,43 @@ export const checkPlagiarism = async (
     searchApiConfig
   } = options;
   
+  // Process uploaded files first if there are any
+  let contentToCheck = text;
+  
+  if (uploadedFiles.length > 0) {
+    // Extract and add text from uploaded files
+    const extractedText = await processUploadedFiles(uploadedFiles);
+    
+    // If user provided no text but uploaded files, use the extracted text
+    // If user provided both text and files, append the extracted text
+    if (text.trim().length === 0) {
+      contentToCheck = extractedText;
+    } else {
+      contentToCheck = `${text}\n\n${extractedText}`;
+    }
+  }
+  
+  // Skip processing if no content to check
+  if (!contentToCheck || contentToCheck.trim().length === 0) {
+    return { sources: [], plagiarismPercentage: 0 };
+  }
+  
   if (method === "searchEngine") {
     // Use real or simulated API search based on availability of searchApiConfig
-    sources = await fetchApiSearchResults(text, searchApiConfig);
+    sources = await fetchApiSearchResults(contentToCheck, searchApiConfig);
     
-    // Process uploaded files
-    if (uploadedFiles.length > 0) {
-      // Check against uploaded documents
-      const uploadedResults = await checkAgainstUploadedDocuments(text, uploadedFiles);
+    // Check against uploaded documents if present (different from the documents being checked)
+    if (studentFiles.length > 0) {
+      const uploadedResults = await checkAgainstUploadedDocuments(contentToCheck, studentFiles);
       sources = [...sources, ...uploadedResults];
     }
   } else {
     // For database method, use the improved database comparison
-    sources = checkAgainstDatabase(text, databaseSourceType);
-    
-    // Process uploaded files
-    if (uploadedFiles.length > 0) {
-      // Check against uploaded documents
-      const uploadedResults = await checkAgainstUploadedDocuments(text, uploadedFiles);
-      sources = [...sources, ...uploadedResults];
-    }
+    sources = checkAgainstDatabase(contentToCheck, databaseSourceType);
     
     // Check against student files if provided
     if (studentFiles.length > 0) {
-      const studentResults = await checkAgainstUploadedDocuments(text, studentFiles);
+      const studentResults = await checkAgainstUploadedDocuments(contentToCheck, studentFiles);
       sources = [...sources, ...studentResults];
     }
   }

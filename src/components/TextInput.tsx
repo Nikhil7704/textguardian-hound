@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -60,6 +59,26 @@ const TextInput: React.FC<TextInputProps> = ({ onSubmit, isLoading }) => {
     setFiles(files.filter((_, i) => i !== index));
   };
 
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const droppedFiles = Array.from(e.dataTransfer.files).filter(file => {
+        const ext = file.name.split('.').pop()?.toLowerCase();
+        return ext === 'pdf' || ext === 'doc' || ext === 'docx';
+      });
+      
+      if (droppedFiles.length > 0) {
+        setFiles(prev => [...prev, ...droppedFiles]);
+      }
+    }
+  };
+
+  const preventDefaults = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
   const getFileIcon = (fileName: string) => {
     const extension = fileName.split('.').pop()?.toLowerCase();
     if (extension === 'pdf') {
@@ -99,7 +118,14 @@ const TextInput: React.FC<TextInputProps> = ({ onSubmit, isLoading }) => {
           </TabsContent>
           
           <TabsContent value="document">
-            <div className="border-2 border-dashed border-secondary/40 rounded-lg p-8 text-center cursor-pointer hover:bg-secondary/10 transition-colors duration-200 min-h-[200px] flex flex-col items-center justify-center">
+            <div 
+              className="border-2 border-dashed border-secondary/40 rounded-lg p-8 text-center cursor-pointer hover:bg-secondary/10 transition-colors duration-200 min-h-[200px] flex flex-col items-center justify-center"
+              onDrop={handleDrop}
+              onDragOver={preventDefaults}
+              onDragEnter={preventDefaults}
+              onDragLeave={preventDefaults}
+              onClick={() => fileInputRef.current?.click()}
+            >
               <input
                 type="file"
                 ref={fileInputRef}
@@ -116,7 +142,10 @@ const TextInput: React.FC<TextInputProps> = ({ onSubmit, isLoading }) => {
               <Button 
                 type="button"
                 variant="outline"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  fileInputRef.current?.click();
+                }}
                 className="bg-secondary/30"
               >
                 Choose Files
@@ -143,7 +172,10 @@ const TextInput: React.FC<TextInputProps> = ({ onSubmit, isLoading }) => {
                         type="button" 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => removeFile(index)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeFile(index);
+                        }}
                         className="h-6 w-6 p-0"
                       >
                         ✕
