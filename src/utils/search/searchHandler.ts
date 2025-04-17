@@ -17,6 +17,8 @@ export const fetchApiSearchResults = async (
   }
 
   try {
+    console.log("Using real Google API search with provided configuration");
+    
     // Split the query into smaller chunks for more accurate search
     const chunks = splitTextIntoChunks(query, 200);
     console.log(`Searching with ${chunks.length} query chunks using Google API`);
@@ -25,9 +27,17 @@ export const fetchApiSearchResults = async (
     const allResults: Source[] = [];
     
     // Only use first few chunks to minimize API usage and ensure reasonable response time
-    for (const chunk of chunks.slice(0, 3)) {
+    const chunksToProcess = chunks.slice(0, Math.min(chunks.length, 3));
+    
+    for (const chunk of chunksToProcess) {
+      if (chunk.length < 50) continue; // Skip very small chunks
+      
+      console.log(`Searching chunk of length ${chunk.length} with Google API`);
+      
       // Get actual results from Google API for this chunk
       const chunkResults = await searchGoogleApi(chunk, searchApiConfig);
+      
+      console.log(`Google API returned ${chunkResults.length} results for chunk`);
       
       // Calculate match percentages based on similarity algorithms
       const enhancedResults = enhanceSearchResults(
@@ -43,6 +53,8 @@ export const fetchApiSearchResults = async (
     const uniqueResults = allResults.filter((result, index, self) =>
       index === self.findIndex((r) => r.url === result.url)
     );
+    
+    console.log(`After deduplication, found ${uniqueResults.length} unique sources`);
     
     // Sort by match percentage (descending)
     return uniqueResults

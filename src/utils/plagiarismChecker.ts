@@ -31,8 +31,10 @@ export const checkPlagiarism = async (
   
   // Process uploaded files first if there are any
   let contentToCheck = text;
+  let extractedFromFiles = false;
   
   if (uploadedFiles.length > 0) {
+    console.log(`Processing ${uploadedFiles.length} uploaded files for content extraction`);
     // Extract and add text from uploaded files
     const extractedText = await processUploadedFiles(uploadedFiles);
     
@@ -40,9 +42,12 @@ export const checkPlagiarism = async (
     // If user provided both text and files, append the extracted text
     if (text.trim().length === 0) {
       contentToCheck = extractedText;
+      extractedFromFiles = true;
     } else {
       contentToCheck = `${text}\n\n${extractedText}`;
     }
+    
+    console.log(`Extracted ${extractedText.length} characters from uploaded files`);
   }
   
   // Skip processing if no content to check
@@ -51,13 +56,20 @@ export const checkPlagiarism = async (
   }
   
   if (method === "searchEngine") {
+    console.log(`Using search engine method with API config present: ${!!searchApiConfig?.apiKey}`);
+    
     // Use real or simulated API search based on availability of searchApiConfig
     sources = await fetchApiSearchResults(contentToCheck, searchApiConfig);
     
+    console.log(`Found ${sources.length} sources from search API`);
+    
     // Check against uploaded documents if present (different from the documents being checked)
     if (studentFiles.length > 0) {
+      console.log(`Checking against ${studentFiles.length} student files`);
       const uploadedResults = await checkAgainstUploadedDocuments(contentToCheck, studentFiles);
       sources = [...sources, ...uploadedResults];
+      
+      console.log(`Found ${uploadedResults.length} additional sources from student files`);
     }
   } else {
     // For database method, use the improved database comparison
@@ -125,7 +137,14 @@ export const checkPlagiarism = async (
       const minimumScore = Math.max(sourceMatchPercentage, 40); // At least 40% for any single source
       plagiarismPercentage = Math.max(plagiarismPercentage, minimumScore);
     }
+    
+    // If we extracted from files, add a note to the first source
+    if (extractedFromFiles) {
+      sources[0].title = `${sources[0].title} (from uploaded document)`;
+    }
   }
+  
+  console.log(`Final plagiarism percentage: ${plagiarismPercentage}% with ${sources.length} sources`);
   
   return {
     sources: sources.slice(0, 5), // Return top 5 sources

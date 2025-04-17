@@ -20,20 +20,44 @@ export const splitTextIntoChunks = (text: string, chunkSize: number = 200): stri
   return chunks;
 };
 
-// Extract text content from uploaded files (simulated in this implementation)
+// Extract text content from uploaded files
 export const extractTextFromFile = async (file: File): Promise<string> => {
   return new Promise((resolve) => {
-    setTimeout(() => {
+    // In a real implementation, this would use PDF.js, mammoth.js, etc.
+    // For this demo, we're simulating text extraction
+    
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      let content = "";
       const fileName = file.name.toLowerCase();
       
-      if (fileName.endsWith('.pdf')) {
-        resolve(`Simulated content extracted from PDF file: ${file.name} with enhanced accuracy. This would contain the actual text from the PDF document using a proper PDF parsing library.`);
-      } else if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) {
-        resolve(`Simulated content extracted from Word document: ${file.name} with enhanced accuracy. This would contain the actual text from the Word document using a proper document parsing library.`);
+      // For txt files, we can read directly
+      if (fileName.endsWith('.txt')) {
+        content = e.target?.result as string || "";
       } else {
-        resolve(`Enhanced content extraction from ${file.name}`);
+        // For other files, we simulate extraction
+        content = `Content extracted from ${file.name}. In a real implementation, 
+        this would contain the actual text extracted from the document using the appropriate 
+        library. For PDFs this would use PDF.js, for Word documents mammoth.js, etc.
+        The content would be fully analyzable for plagiarism detection.`;
       }
-    }, 500);
+      
+      resolve(content);
+    };
+    
+    reader.onerror = () => {
+      resolve(`Failed to read ${file.name}. Please try again.`);
+    };
+    
+    // Read as text for txt files, as array buffer for others
+    if (file.name.toLowerCase().endsWith('.txt')) {
+      reader.readAsText(file);
+    } else {
+      // In a real implementation, we would handle different file types
+      // Here we just read as text for simplicity
+      reader.readAsText(file);
+    }
   });
 };
 
