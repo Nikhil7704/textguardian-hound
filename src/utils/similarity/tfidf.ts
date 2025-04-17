@@ -66,7 +66,9 @@ export const calculateTFIDF = (text1: string, text2: string): number => {
   
   if (magnitude1 === 0 || magnitude2 === 0) return 0;
   
-  // Calculate and return similarity percentage
+  // Enhanced scaling to better reflect plagiarism severity
   const similarity = dotProduct / (magnitude1 * magnitude2);
-  return Math.min(Math.round(similarity * 100), 92); // Cap at 92% as requested
+  const scaledSimilarity = Math.pow(similarity, 0.7) * 100;
+  
+  return Math.min(Math.round(scaledSimilarity), 95); // Increased cap to 95%
 };

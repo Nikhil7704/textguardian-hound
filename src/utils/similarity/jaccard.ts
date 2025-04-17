@@ -23,7 +23,12 @@ export const calculateJaccardSimilarity = (text1: string, text2: string): number
   
   if (union.size === 0) return 0;
   
-  // Calculate and return similarity percentage
+  // Calculate similarity and scale it for more appropriate detection
+  // Increase the multiplier to make matches more significant
   const similarity = intersection.size / union.size;
-  return Math.min(Math.round(similarity * 100), 92); // Cap at 92% as requested
+  
+  // Enhanced scaling to better reflect plagiarism severity
+  const scaledSimilarity = Math.pow(similarity, 0.7) * 100;
+  
+  return Math.min(Math.round(scaledSimilarity), 95); // Increased cap to 95%
 };
