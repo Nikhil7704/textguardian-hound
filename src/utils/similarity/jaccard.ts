@@ -32,3 +32,4 @@ export const calculateJaccardSimilarity = (text1: string, text2: string): number
   const scaledSimilarity = Math.pow(similarity, 0.5) * 100;
   
   return Math.min(Math.round(scaledSimilarity * 1.25), 95); // Increased multiplier and kept cap at 95%
+};

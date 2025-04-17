@@ -72,3 +72,4 @@ export const calculateTFIDF = (text1: string, text2: string): number => {
   const scaledSimilarity = Math.pow(similarity, 0.5) * 120;
   
   return Math.min(Math.round(scaledSimilarity), 95); // Kept cap at 95% but significantly boosted base score
+};
