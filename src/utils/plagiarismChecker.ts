@@ -87,7 +87,7 @@ export const checkPlagiarism = async (
     index === self.findIndex((s) => s.url === source.url)
   );
   
-  // Revised plagiarism percentage calculation - if no sources, return 0
+  // FIXED: Ensure plagiarism percentage is always 0 when no sources are found
   let plagiarismPercentage = 0;
   
   if (sources.length > 0) {
@@ -121,21 +121,15 @@ export const checkPlagiarism = async (
       95 // Cap at 95%
     );
     
-    // Set more appropriate minimum thresholds based on number of sources
-    if (sources.length >= 3 && topSources[0].matchPercentage > 60) {
-      plagiarismPercentage = Math.max(plagiarismPercentage, 50); // Higher minimum for 3+ sources with high match
-    } else if (sources.length >= 2 && topSources[0].matchPercentage > 45) {
-      plagiarismPercentage = Math.max(plagiarismPercentage, 35); // Medium minimum for 2 sources with decent match
-    }
+    // REMOVED the minimum thresholds to allow the score to be more directly
+    // based on actual similarity rather than enforcing minimums
     
     // If we extracted from files, add a note to the first source
     if (extractedFromFiles) {
       sources[0].title = `${sources[0].title} (from uploaded document)`;
     }
-  } else {
-    // No matches found - ensure plagiarism percentage is 0
-    plagiarismPercentage = 0;
   }
+  // No need for an else block here since plagiarismPercentage is initialized to 0
   
   console.log(`Final plagiarism percentage: ${plagiarismPercentage}% with ${sources.length} sources`);
   
