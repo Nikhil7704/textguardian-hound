@@ -21,6 +21,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
   if (!isVisible) return null;
 
   const getPlagiarismSeverity = (percentage: number) => {
+    if (percentage === 0) return "none";
     if (percentage < 15) return "low";
     if (percentage < 40) return "medium";
     return "high";
@@ -29,6 +30,11 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
   const severity = getPlagiarismSeverity(plagiarismPercentage);
 
   const severityConfig = {
+    none: {
+      color: "bg-emerald-500",
+      icon: <CheckCircle className="h-6 w-6 text-emerald-500" />,
+      message: "No plagiarism detected",
+    },
     low: {
       color: "bg-emerald-500",
       icon: <CheckCircle className="h-6 w-6 text-emerald-500" />,
@@ -70,25 +76,27 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                       cx="50"
                       cy="50"
                     />
-                    <circle
-                      className={`${severityConfig[severity].color}`}
-                      strokeWidth="8"
-                      strokeDasharray={`${plagiarismPercentage * 2.51} 251`}
-                      strokeLinecap="round"
-                      stroke="currentColor"
-                      fill="transparent"
-                      r="40"
-                      cx="50"
-                      cy="50"
-                      transform="rotate(-90 50 50)"
-                    />
+                    {plagiarismPercentage > 0 && (
+                      <circle
+                        className={`${severityConfig[severity].color}`}
+                        strokeWidth="8"
+                        strokeDasharray={`${plagiarismPercentage * 2.51} 251`}
+                        strokeLinecap="round"
+                        stroke="currentColor"
+                        fill="transparent"
+                        r="40"
+                        cx="50"
+                        cy="50"
+                        transform="rotate(-90 50 50)"
+                      />
+                    )}
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <span className="text-2xl font-bold text-gradient">
                       {plagiarismPercentage}%
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      Plagiarized
+                      {plagiarismPercentage > 0 ? "Plagiarized" : "Original"}
                     </span>
                   </div>
                 </div>

@@ -39,14 +39,25 @@ export const fetchApiSearchResults = async (
       
       console.log(`Google API returned ${chunkResults.length} results for chunk`);
       
+      if (chunkResults.length === 0) {
+        // No results found for this chunk
+        continue;
+      }
+      
       // Calculate match percentages based on similarity algorithms
       const enhancedResults = enhanceSearchResults(
         chunkResults,
-        query,
+        query, // Use the full query for better similarity matching
         calculateTextSimilarity
       );
       
       allResults.push(...enhancedResults);
+    }
+    
+    // If no results found at all, return empty array (will result in 0% plagiarism)
+    if (allResults.length === 0) {
+      console.log("No matching sources found in Google search");
+      return [];
     }
     
     // Remove duplicates by URL
